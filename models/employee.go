@@ -19,6 +19,7 @@ type Employee struct {
 	Extension      string    `json:"extension"`
 	JobTitle       string    `gorm:"column:jobTitle" json:"job_title"`
 	Office         *Offices  `gorm:"foreignKey:OfficeCode;references:OfficeCode"`
+	Password       string    `gorm:"column:password" json:"password"`
 }
 
 type Offices struct {

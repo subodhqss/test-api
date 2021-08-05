@@ -5,11 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image/png"
+	"log"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/subodhqss/test-api/models"
 	"github.com/subodhqss/test-api/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type EmployeeService interface {
@@ -19,6 +21,7 @@ type EmployeeService interface {
 	GetEmployeeInOffice(officeCode string) (*models.Offices, error)
 	GetQRCodeImage() (*models.QRCode, error)
 	GetTOTPKey() (*otp.Key, error)
+	LoginEmployee(login models.Login) map[string]string
 }
 
 type employeeSrv struct {
@@ -40,6 +43,7 @@ func (es *employeeSrv) GetEmployeeById(empNo string) (*models.Employee, error) {
 }
 
 func (es *employeeSrv) AddEmployee(emp *models.Employee) (*models.Employee, error) {
+	generatePass(&emp.Password)
 	return es.employeeRepo.AddEmployee(emp)
 }
 
@@ -82,8 +86,33 @@ func GenerateQRCode(key *otp.Key) (*models.QRCode, error) {
 
 func (es *employeeSrv) GetTOTPKey() (*otp.Key, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "wndyr.com",
-		AccountName: "subodh@wndyr.com",
+		Issuer:      "test.com",
+		AccountName: "subodh@test.com",
 	})
 	return key, err
+}
+
+func (es *employeeSrv) LoginEmployee(login models.Login) map[string]string {
+	data := make(map[string]string)
+	pass := "$2a$05$alqplJ2J4RjXLYFvR5X63.KmLeyu1CP2KWp1vDh6bo3h7WAPhR/pO"
+
+	if bcrypt.CompareHashAndPassword([]byte(pass), []byte(login.Password)) != nil {
+		log.Printf("Error: comparing passs %s and %s", pass, login.Password)
+		return data
+	}
+
+	data["hasPass"] = pass
+	data["pass"] = login.Password
+
+	return data
+}
+
+func generatePass(pass *string) error {
+	passByte, err := bcrypt.GenerateFromPassword([]byte(*pass), 8)
+	if err != nil {
+		log.Printf("Error in generating pass %#v", err)
+		return err
+	}
+	*pass = string(passByte)
+	return nil
 }
